@@ -11,7 +11,7 @@ When using this target, you must set three environment variables:
 PORT=""
 TWILIO_ACCOUNT_SID=""
 TWILIO_AUTH_TOKEN=""
-TWILIO_NUMBER=""
+TWILIO_NUMBER="" # +15558675309
 ```
 
 # License
