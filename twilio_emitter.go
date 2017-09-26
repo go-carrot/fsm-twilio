@@ -1,9 +1,11 @@
 package fsmtwilio
 
 import (
+	"bytes"
+	"net/http"
+	"net/url"
 	"os"
-
-	"github.com/BrandonRomano/wrecker"
+	"strconv"
 )
 
 var (
@@ -17,14 +19,28 @@ type TwilioEmitter struct {
 }
 
 func (t *TwilioEmitter) Emit(input interface{}) error {
-	// TODO Validate Post was successful
-	client := wrecker.New("https://api.twilio.com/2010-04-01")
-	client.Post("/Accounts/"+ACCOUNT_SID+"/Messages").
-		FormParam("To", t.UUID).
-		FormParam("From", TWILIO_NUMBER).
-		FormParam("Body", input.(string)).
-		SetBasicAuth(ACCOUNT_SID, AUTH_TOKEN).
-		Execute()
+	client := http.Client{}
+	URL := "https://api.twilio.com/2010-04-01/Accounts/" + ACCOUNT_SID + "/Messages"
+	payload := url.Values{
+		"To":   {t.UUID},
+		"From": {TWILIO_NUMBER},
+		"Body": {input.(string)},
+	}
+	body := payload.Encode()
+
+	req, err := http.NewRequest(http.MethodPost, URL, bytes.NewBufferString(body))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Length", strconv.Itoa(len(body)))
+	req.SetBasicAuth(ACCOUNT_SID, AUTH_TOKEN)
+
+	_, err = client.Do(req)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
