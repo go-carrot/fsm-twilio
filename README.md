@@ -3,7 +3,6 @@
 > A Twilio SMS/MMS target for [go-carrot/fsm](https://github.com/go-carrot/fsm).
 
 ## Environment Variables
-
 When using this target, you must set three environment variables:
 
 ```
@@ -12,6 +11,5 @@ TWILIO_AUTH_TOKEN=""
 TWILIO_NUMBER="" # +15558675309
 ```
 
-# License
-
+## License
 [MIT](LICENSE.md)
