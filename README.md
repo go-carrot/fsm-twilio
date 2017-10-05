@@ -8,7 +8,6 @@ FSM Twilio is a Twilio SMS/MMS target for [go-carrot/fsm](https://github.com/go-
 When using this target, you must set three environment variables:
 
 ```
-PORT=""
 TWILIO_ACCOUNT_SID=""
 TWILIO_AUTH_TOKEN=""
 TWILIO_NUMBER="" # +15558675309
