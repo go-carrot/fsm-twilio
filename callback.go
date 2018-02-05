@@ -1,6 +1,6 @@
 package fsmtwilio
 
-type MessageReceivedCallback struct {
+type messageReceivedCallback struct {
 	ApiVersion string
 	AccountSid string
 
@@ -29,11 +29,11 @@ type MessageReceivedCallback struct {
 	Body string
 }
 
-type MessageSentCallback struct {
+type messageSentCallback struct {
 	Message Message `xml:"Message"`
 }
 
-type Message struct {
+type message struct {
 	Sid                 string          `xml:"Sid"`
 	DateCreated         string          `xml:"DateCreated"`
 	DateUpdated         string          `xml:"DateUpdated"`
@@ -56,6 +56,6 @@ type Message struct {
 	SubresourceUris     SubresourceUris `xml:"SubresourceUris"`
 }
 
-type SubresourceUris struct {
+type subresourceUris struct {
 	Media string `xml:"Media"`
 }

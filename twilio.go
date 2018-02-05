@@ -11,45 +11,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/go-carrot/fsm"
-	"github.com/gorilla/schema"
-	"github.com/julienschmidt/httprouter"
-	"github.com/tylerb/graceful"
+	"github.com/fsm/fsm"
 )
 
-func Start(stateMachine fsm.StateMachine, startState string) {
-	// Create Store
-	store := &CacheStore{
-		Traversers: make(map[string]fsm.Traverser, 0),
-	}
-
-	// Build Server
-	srv := &graceful.Server{
-		Timeout: 10 * time.Second,
-		Server: &http.Server{
-			Addr:    ":" + os.Getenv("PORT"),
-			Handler: buildRouter(store, stateMachine, startState),
-		},
-	}
-	err := srv.ListenAndServe()
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
-func buildRouter(store fsm.Store, stateMachine fsm.StateMachine, startState string) *httprouter.Router {
-	// Router
-	router := &httprouter.Router{
-		RedirectTrailingSlash:  true,
-		RedirectFixedPath:      true,
-		HandleMethodNotAllowed: true,
-	}
-	router.HandlerFunc(http.MethodPost, "/twilio", IncomingMessage(store, stateMachine, startState))
-	return router
-}
-
-// Validation Spec: https://www.twilio.com/docs/api/security#validating-requests
-func Validate(r *http.Request) bool {
+// validateRequest checks all requests for tammer
+// Twlio Spec: https://www.twilio.com/docs/api/security#validating-requests
+func validateRequest(r *http.Request) bool {
 	r.ParseForm()
 
 	// Identify Scheme
@@ -88,48 +55,39 @@ func Validate(r *http.Request) bool {
 	return result == expected
 }
 
-func IncomingMessage(store fsm.Store, stateMachine fsm.StateMachine, startState string) func(http.ResponseWriter, *http.Request) {
+// GetWebhook handles ...
+func GetWebhook(stateMachine fsm.StateMachine, store fsm.Store) func(http.ResponseWriter, *http.Request) func(http.ResponseWritter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if valid := Validate(r); !valid {
+		// Validate Request
+		if valid := validateRequest(r); !valid {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		message := new(MessageReceivedCallback)
+		message := new(messageReceivedCallback)
 		decoder := schema.NewDecoder()
 
 		// Parse body into struct
 		err := r.ParseForm()
 		if err != nil {
+			log.Error(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		err = decoder.Decode(message, r.PostForm)
 		if err != nil {
+			log.Error(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
-		// Get Traverser
-		newTraverser := false
-		traverser, err := store.FetchTraverser(message.From)
-		if err != nil {
-			traverser, _ = store.CreateTraverser(message.From)
-			traverser.SetCurrentState(startState)
-			newTraverser = true
-		}
-
 		// Create Emitter
 		emitter := &TwilioEmitter{
 			UUID: traverser.UUID(),
 		}
 
-		// Get Current State
-		currentState := stateMachine[traverser.CurrentState()](emitter, traverser)
-		if newTraverser {
-			currentState.EntryAction()
-		}
+		// HERE
+		targetutil.Step(message.From, message.Body, store, emitter, stateMachine)
 
 		// Transition
 		newState := currentState.Transition(message.Body)
